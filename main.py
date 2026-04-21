@@ -2,7 +2,7 @@
 Yuru Camp - Lakeside Night Scene
 A 3D OpenGL scene depicting a nighttime lakeside camping scene.
 Features: mountains, animated lake, starry sky with moon, campfire with particles,
-tent and camping accessories.
+tent and camping accessories. cek notif
 
 Controls:
   - Left mouse drag: Rotate camera
