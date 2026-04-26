@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core.window import Window
 from core.camera import Camera
 from core.shader import Shader
+from core.terrain_height import height_at, CAMP_X, CAMP_Z
 from objects.terrain import Terrain
 from objects.lake import Lake
 from objects.campfire import Campfire
@@ -78,10 +79,15 @@ class Scene:
             os.path.join(shader_dir, "object.frag")
         )
 
-        # Create camera
+        # Camp and fire positions
+        camp_y = height_at(CAMP_X, CAMP_Z)
+        fire_x, fire_z = CAMP_X - 2.0, CAMP_Z + 1.5
+        fire_y = height_at(fire_x, fire_z) + 0.3
+
+        # Create camera near camp, looking NORTH toward lake and Fuji
         self.camera = Camera(
-            position=glm.vec3(10.0, 6.0, 10.0),
-            target=glm.vec3(2.0, 0.5, 2.0)
+            position=glm.vec3(CAMP_X, camp_y + 3.0, CAMP_Z + 6.0),
+            target=glm.vec3(CAMP_X, camp_y + 1.0, CAMP_Z - 30.0)
         )
 
         # Create scene objects
@@ -90,7 +96,7 @@ class Scene:
         print("Generating lake...")
         self.lake = Lake()
         print("Generating campfire...")
-        self.campfire = Campfire(position=(4.0, 0.3, 3.0))
+        self.campfire = Campfire(position=(fire_x, fire_y - 0.1, fire_z))
         print("Generating tent and accessories...")
         self.tent = Tent()
         print("Generating skybox...")
@@ -99,11 +105,11 @@ class Scene:
 
         # Scene parameters
         self.time = 0.0
-        self.fire_pos = glm.vec3(4.0, 0.5, 3.0)
+        self.fire_pos = glm.vec3(fire_x, fire_y, fire_z)
         self.fire_color = glm.vec3(1.0, 0.6, 0.15)
         self.fire_intensity = 3.0
-        self.moon_dir = glm.normalize(glm.vec3(0.3, 0.8, -0.5))
-        self.moon_color = glm.vec3(0.4, 0.45, 0.6)
+        self.moon_dir = glm.normalize(glm.vec3(0.5, 0.6, -0.4))
+        self.moon_color = glm.vec3(0.6, 0.65, 0.8)
 
     def handle_events(self):
         """Process input events."""
@@ -115,6 +121,9 @@ class Scene:
                     self.window.running = False
                 elif event.key == K_r:
                     self.camera.auto_rotate = not self.camera.auto_rotate
+                elif event.key == K_c:
+                    self.camera.toggle_mode()
+                    print(f"Camera mode: {self.camera.mode}")
             elif event.type == VIDEORESIZE:
                 self.window.handle_resize(event.w, event.h)
             elif event.type == MOUSEBUTTONDOWN:
@@ -135,6 +144,11 @@ class Scene:
     def update(self, dt):
         """Update scene state."""
         self.time += dt
+        
+        # Handle keyboard movement
+        keys = pygame.key.get_pressed()
+        self.camera.process_keyboard(keys, dt)
+        
         self.camera.update(dt)
         self.campfire.update(dt)
 
@@ -227,8 +241,11 @@ class Scene:
         print("\n=== Yuru Camp - Lakeside Night Scene ===")
         print("Controls:")
         print("  Mouse drag  : Rotate camera")
-        print("  Scroll      : Zoom in/out")
-        print("  R           : Toggle auto-rotation")
+        print("  Scroll      : Zoom (Orbital) / Move Speed (Free)")
+        print("  WASD        : Move (Free mode)")
+        print("  Space/Shift : Up/Down (Free mode)")
+        print("  C           : Toggle Camera Mode (Free/Orbital)")
+        print("  R           : Toggle Auto-rotation (Orbital mode)")
         print("  ESC         : Exit")
         print("========================================\n")
 

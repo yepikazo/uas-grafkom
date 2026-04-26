@@ -16,17 +16,17 @@ out vec2 TexCoord;
 void main() {
     vec3 pos = aPos;
 
-    // Animate wave using multiple sine waves
-    float wave1 = sin(pos.x * 1.5 + time * 1.2) * 0.06;
-    float wave2 = sin(pos.z * 2.0 + time * 0.8) * 0.04;
-    float wave3 = sin((pos.x + pos.z) * 1.0 + time * 1.5) * 0.03;
+    // Animate wave using multiple sine waves (scaled for large lake)
+    float wave1 = sin(pos.x * 0.3 + time * 1.2) * 0.08;
+    float wave2 = sin(pos.z * 0.4 + time * 0.8) * 0.05;
+    float wave3 = sin((pos.x + pos.z) * 0.2 + time * 1.5) * 0.04;
     pos.y += wave1 + wave2 + wave3;
 
     // Recalculate normal based on wave derivatives
-    float dx = 1.5 * cos(pos.x * 1.5 + time * 1.2) * 0.06
-             + 1.0 * cos((pos.x + pos.z) * 1.0 + time * 1.5) * 0.03;
-    float dz = 2.0 * cos(pos.z * 2.0 + time * 0.8) * 0.04
-             + 1.0 * cos((pos.x + pos.z) * 1.0 + time * 1.5) * 0.03;
+    float dx = 0.3 * cos(pos.x * 0.3 + time * 1.2) * 0.08
+             + 0.2 * cos((pos.x + pos.z) * 0.2 + time * 1.5) * 0.04;
+    float dz = 0.4 * cos(pos.z * 0.4 + time * 0.8) * 0.05
+             + 0.2 * cos((pos.x + pos.z) * 0.2 + time * 1.5) * 0.04;
 
     vec3 waveNormal = normalize(vec3(-dx, 1.0, -dz));
 

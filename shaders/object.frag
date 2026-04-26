@@ -21,11 +21,11 @@ void main() {
 
     // Moonlight
     float moonDiff = max(dot(norm, normalize(moonDir)), 0.0);
-    vec3 moonLighting = moonColor * moonDiff * 0.2 * VertexColor;
+    vec3 moonLighting = moonColor * moonDiff * 0.7 * VertexColor;
 
     // Campfire light
     float dist = length(firePos - FragPos);
-    float attenuation = fireIntensity / (1.0 + 0.14 * dist + 0.07 * dist * dist);
+    float attenuation = fireIntensity / (1.0 + 0.05 * dist + 0.008 * dist * dist);
     float fireDiff = max(dot(norm, normalize(firePos - FragPos)), 0.0);
     vec3 fireLighting = fireColor * fireDiff * attenuation * VertexColor;
 
@@ -37,7 +37,7 @@ void main() {
 
     // Fog
     float fogDist = length(FragPos);
-    float fogFactor = 1.0 - exp(-fogDist * 0.015);
+    float fogFactor = 1.0 - exp(-fogDist * 0.003);
     vec3 fogColor = vec3(0.02, 0.03, 0.06);
     result = mix(result, fogColor, fogFactor);
 

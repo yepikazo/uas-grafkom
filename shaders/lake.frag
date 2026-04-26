@@ -33,11 +33,11 @@ void main() {
 
     // Moon diffuse on water
     float moonDiff = max(dot(norm, normalize(moonDir)), 0.0);
-    vec3 moonDiffuse = moonColor * moonDiff * 0.15;
+    vec3 moonDiffuse = moonColor * moonDiff * 0.5;
 
     // Campfire reflection on water
     float dist = length(firePos - FragPos);
-    float attenuation = fireIntensity / (1.0 + 0.1 * dist + 0.05 * dist * dist);
+    float attenuation = fireIntensity / (1.0 + 0.03 * dist + 0.005 * dist * dist);
     vec3 fireReflectDir = reflect(-normalize(firePos - FragPos), norm);
     float fireSpec = pow(max(dot(viewDir, fireReflectDir), 0.0), 16.0);
     vec3 fireReflection = fireColor * fireSpec * attenuation * 0.8;
@@ -57,7 +57,7 @@ void main() {
 
     // Night fog
     float fogDist = length(FragPos);
-    float fogFactor = 1.0 - exp(-fogDist * 0.012);
+    float fogFactor = 1.0 - exp(-fogDist * 0.003);
     vec3 fogColor = vec3(0.02, 0.03, 0.06);
     result = mix(result, fogColor, fogFactor);
 
