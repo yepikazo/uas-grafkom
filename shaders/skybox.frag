@@ -18,9 +18,9 @@ void main() {
 
     // Night sky gradient
     float horizon = smoothstep(-0.1, 0.3, dir.y);
-    vec3 nightTop = vec3(0.005, 0.01, 0.04);
-    vec3 nightMid = vec3(0.01, 0.015, 0.05);
-    vec3 horizonColor = vec3(0.02, 0.03, 0.06);
+    vec3 nightTop = vec3(0.01, 0.02, 0.08);
+    vec3 nightMid = vec3(0.02, 0.03, 0.10);
+    vec3 horizonColor = vec3(0.04, 0.05, 0.12);
     vec3 skyColor = mix(horizonColor, mix(nightMid, nightTop, horizon), horizon);
 
     // === Stars layer 1 ===
@@ -152,7 +152,7 @@ void main() {
     vec2 moonUV = dir.xz / max(dir.y, 0.001);
     float crater = hash(floor(moonUV * 5.0)) * 0.15;
     moonFaceColor -= vec3(crater * 0.5, crater * 0.4, crater * 0.3) * moonDisc;
-    skyColor += moonFaceColor * moonDisc * 3.0;
+    skyColor += moonFaceColor * moonDisc * 5.0;
 
     float moonGlow = smoothstep(0.94, 0.998, moonAngle);
     skyColor += vec3(0.2, 0.25, 0.4) * moonGlow * (1.0 - moonDisc);

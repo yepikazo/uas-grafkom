@@ -17,15 +17,15 @@ void main() {
     vec3 norm = normalize(Normal);
 
     // Ambient (night)
-    vec3 ambient = vec3(0.03, 0.04, 0.07) * VertexColor;
+    vec3 ambient = vec3(0.08, 0.1, 0.18) * VertexColor;
 
     // Moonlight
     float moonDiff = max(dot(norm, normalize(moonDir)), 0.0);
-    vec3 moonLighting = moonColor * moonDiff * 0.7 * VertexColor;
+    vec3 moonLighting = moonColor * moonDiff * 1.4 * VertexColor;
 
     // Campfire light
     float dist = length(firePos - FragPos);
-    float attenuation = fireIntensity / (1.0 + 0.05 * dist + 0.008 * dist * dist);
+    float attenuation = fireIntensity / (1.0 + 0.03 * dist + 0.005 * dist * dist);
     float fireDiff = max(dot(norm, normalize(firePos - FragPos)), 0.0);
     vec3 fireLighting = fireColor * fireDiff * attenuation * VertexColor;
 

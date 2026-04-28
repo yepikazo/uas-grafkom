@@ -108,8 +108,9 @@ class Scene:
         self.fire_pos = glm.vec3(fire_x, fire_y, fire_z)
         self.fire_color = glm.vec3(1.0, 0.6, 0.15)
         self.fire_intensity = 3.0
-        self.moon_dir = glm.normalize(glm.vec3(0.5, 0.6, -0.4))
-        self.moon_color = glm.vec3(0.6, 0.65, 0.8)
+        # Moon beside Mount Fuji — slightly right, low on northern horizon
+        self.moon_dir = glm.normalize(glm.vec3(0.35, 0.45, -0.85))
+        self.moon_color = glm.vec3(0.7, 0.75, 1.0)
 
     def handle_events(self):
         """Process input events."""
@@ -153,7 +154,7 @@ class Scene:
         self.campfire.update(dt)
 
         # Animate fire intensity
-        self.fire_intensity = 2.5 + 0.8 * math.sin(self.time * 3.0) + 0.3 * math.sin(self.time * 7.0)
+        self.fire_intensity = 5 + 1.2 * math.sin(self.time * 3.0) + 0.5 * math.sin(self.time * 7.0)
 
     def render(self):
         """Render the complete scene."""

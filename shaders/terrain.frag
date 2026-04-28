@@ -46,11 +46,11 @@ void main() {
     vec3 moonLighting = moonColor * moonDiff * 0.8;
 
     // Ambient light (night sky)
-    vec3 ambient = vec3(0.03, 0.04, 0.08);
+    vec3 ambient = vec3(0.08, 0.1, 0.18);
 
     // Campfire point light
     float dist = length(firePos - FragPos);
-    float attenuation = fireIntensity / (1.0 + 0.05 * dist + 0.008 * dist * dist);
+    float attenuation = fireIntensity / (1.0 + 0.03 * dist + 0.005 * dist * dist);
     float fireDiff = max(dot(norm, normalize(firePos - FragPos)), 0.0);
     vec3 fireLighting = fireColor * fireDiff * attenuation;
 
