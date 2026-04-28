@@ -33,6 +33,7 @@ from objects.lake import Lake
 from objects.campfire import Campfire
 from objects.tent import Tent
 from objects.skybox import Skybox
+from objects.firefly import Firefly
 
 
 class Scene:
@@ -78,6 +79,10 @@ class Scene:
             os.path.join(shader_dir, "object.vert"),
             os.path.join(shader_dir, "object.frag")
         )
+        self.firefly_shader = Shader(
+            os.path.join(shader_dir, "firefly.vert"),
+            os.path.join(shader_dir, "firefly.frag")
+        )
 
         # Camp and fire positions
         camp_y = height_at(CAMP_X, CAMP_Z)
@@ -101,6 +106,8 @@ class Scene:
         self.tent = Tent()
         print("Generating skybox...")
         self.skybox = Skybox()
+        print("Generating fireflies...")
+        self.firefly = Firefly()
         print("Scene ready!")
 
         # Scene parameters
@@ -152,6 +159,7 @@ class Scene:
         
         self.camera.update(dt)
         self.campfire.update(dt)
+        self.firefly.update(dt)
 
         # Animate fire intensity
         self.fire_intensity = 5 + 1.2 * math.sin(self.time * 3.0) + 0.5 * math.sin(self.time * 7.0)
@@ -234,6 +242,13 @@ class Scene:
         self.campfire_shader.set_float("time", self.time)
         self.campfire.draw_particles()
 
+        # --- Draw Fireflies (additive blending for natural glow) ---
+        self.firefly_shader.use()
+        self.firefly_shader.set_mat4("model", model_data)
+        self.firefly_shader.set_mat4("view", view_data)
+        self.firefly_shader.set_mat4("projection", proj_data)
+        self.firefly.draw()
+
         # Reset blend mode
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
@@ -266,11 +281,13 @@ class Scene:
         self.campfire.destroy()
         self.tent.destroy()
         self.skybox.destroy()
+        self.firefly.destroy()
         self.terrain_shader.destroy()
         self.lake_shader.destroy()
         self.campfire_shader.destroy()
         self.skybox_shader.destroy()
         self.object_shader.destroy()
+        self.firefly_shader.destroy()
         self.window.destroy()
 
 
