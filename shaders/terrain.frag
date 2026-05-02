@@ -5,9 +5,11 @@ in vec3 Normal;
 in vec2 TexCoord;
 in float Height;
 
-uniform vec3 firePos;
-uniform vec3 fireColor;
-uniform float fireIntensity;
+const int MAX_FIRES = 3;
+uniform int fireCount;
+uniform vec3 firePositions[MAX_FIRES];
+uniform vec3 fireColors[MAX_FIRES];
+uniform float fireIntensities[MAX_FIRES];
 uniform vec3 moonDir;
 uniform vec3 moonColor;
 uniform float time;
@@ -48,15 +50,20 @@ void main() {
     // Ambient light (night sky)
     vec3 ambient = vec3(0.08, 0.1, 0.18);
 
-    // Campfire point light
-    float dist = length(firePos - FragPos);
-    float attenuation = fireIntensity / (1.0 + 0.03 * dist + 0.005 * dist * dist);
-    float fireDiff = max(dot(norm, normalize(firePos - FragPos)), 0.0);
-    vec3 fireLighting = fireColor * fireDiff * attenuation;
+    // Campfire point lights
+    vec3 fireLighting = vec3(0.0);
+    for (int i = 0; i < MAX_FIRES; i++) {
+        if (i >= fireCount) {
+            break;
+        }
 
-    // Flickering effect
-    float flicker = 0.9 + 0.1 * sin(time * 8.0 + FragPos.x * 2.0);
-    fireLighting *= flicker;
+        vec3 toFire = firePositions[i] - FragPos;
+        float dist = length(toFire);
+        float attenuation = fireIntensities[i] / (1.0 + 0.03 * dist + 0.005 * dist * dist);
+        float fireDiff = max(dot(norm, normalize(toFire)), 0.0);
+        float flicker = 0.9 + 0.1 * sin(time * 8.0 + FragPos.x * 2.0 + float(i) * 1.7);
+        fireLighting += fireColors[i] * fireDiff * attenuation * flicker;
+    }
 
     vec3 result = baseColor * (ambient + moonLighting + fireLighting);
 

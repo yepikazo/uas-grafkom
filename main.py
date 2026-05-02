@@ -104,8 +104,18 @@ class Scene:
         self.terrain = Terrain()
         print("Generating lake...")
         self.lake = Lake()
-        print("Generating campfire...")
-        self.campfire = Campfire(position=(fire_x, fire_y - 0.1, fire_z))
+        print("Generating campfires...")
+        secondary_fire_specs = [
+            (CAMP_X - 18.0, CAMP_Z + 9.0),
+            (CAMP_X + 17.0, CAMP_Z + 8.0),
+        ]
+        self.campfires = [Campfire(position=(fire_x, fire_y - 0.1, fire_z))]
+        self.fire_light_positions = [glm.vec3(fire_x, fire_y, fire_z)]
+        for sx, sz in secondary_fire_specs:
+            sy = height_at(sx, sz) + 0.3
+            self.campfires.append(Campfire(position=(sx, sy - 0.1, sz)))
+            self.fire_light_positions.append(glm.vec3(sx, sy, sz))
+        self.campfire = self.campfires[0]
         print("Generating tent and accessories...")
         self.tent = Tent()
         print("Generating skybox...")
@@ -116,7 +126,7 @@ class Scene:
 
         # Scene parameters
         self.time = 0.0
-        self.fire_pos = glm.vec3(fire_x, fire_y, fire_z)
+        self.fire_pos = self.fire_light_positions[0]
         self.fire_color = glm.vec3(1.0, 0.6, 0.15)
         self.fire_intensity = 3.0
         # Moon close to Mount Fuji, slightly above and to the right of the summit.
@@ -136,6 +146,16 @@ class Scene:
 
     def _lerp_vec3(self, a, b, t):
         return a * (1.0 - t) + b * t
+
+    def _set_fire_uniforms(self, shader):
+        """Upload all campfire light sources to a shader."""
+        fire_count = min(len(self.fire_light_positions), 3)
+        shader.set_int("fireCount", fire_count)
+        for i in range(fire_count):
+            pos = self.fire_light_positions[i]
+            shader.set_vec3(f"firePositions[{i}]", pos.x, pos.y, pos.z)
+            shader.set_vec3(f"fireColors[{i}]", self.fire_color.x, self.fire_color.y, self.fire_color.z)
+            shader.set_float(f"fireIntensities[{i}]", self.fire_intensity)
 
     def _sample_cinematic_path(self):
         """Return smoothly interpolated camera and target positions."""
@@ -231,7 +251,8 @@ class Scene:
             self.camera.process_keyboard(keys, dt)
             self.camera.update(dt)
 
-        self.campfire.update(dt)
+        for campfire in self.campfires:
+            campfire.update(dt)
         self.firefly.update(dt)
 
         # Animate fire intensity
@@ -266,9 +287,7 @@ class Scene:
         self.terrain_shader.set_mat4("model", model_data)
         self.terrain_shader.set_mat4("view", view_data)
         self.terrain_shader.set_mat4("projection", proj_data)
-        self.terrain_shader.set_vec3("firePos", self.fire_pos.x, self.fire_pos.y, self.fire_pos.z)
-        self.terrain_shader.set_vec3("fireColor", self.fire_color.x, self.fire_color.y, self.fire_color.z)
-        self.terrain_shader.set_float("fireIntensity", self.fire_intensity)
+        self._set_fire_uniforms(self.terrain_shader)
         self.terrain_shader.set_vec3("moonDir", self.moon_dir.x, self.moon_dir.y, self.moon_dir.z)
         self.terrain_shader.set_vec3("moonColor", self.moon_color.x, self.moon_color.y, self.moon_color.z)
         self.terrain_shader.set_float("time", self.time)
@@ -279,16 +298,15 @@ class Scene:
         self.object_shader.set_mat4("model", model_data)
         self.object_shader.set_mat4("view", view_data)
         self.object_shader.set_mat4("projection", proj_data)
-        self.object_shader.set_vec3("firePos", self.fire_pos.x, self.fire_pos.y, self.fire_pos.z)
-        self.object_shader.set_vec3("fireColor", self.fire_color.x, self.fire_color.y, self.fire_color.z)
-        self.object_shader.set_float("fireIntensity", self.fire_intensity)
+        self._set_fire_uniforms(self.object_shader)
         self.object_shader.set_vec3("moonDir", self.moon_dir.x, self.moon_dir.y, self.moon_dir.z)
         self.object_shader.set_vec3("moonColor", self.moon_color.x, self.moon_color.y, self.moon_color.z)
         self.object_shader.set_float("time", self.time)
         self.tent.draw()
 
         # --- Draw Campfire logs ---
-        self.campfire.draw_logs()
+        for campfire in self.campfires:
+            campfire.draw_logs()
 
         # --- Draw Lake (transparent, after opaque objects) ---
         glEnable(GL_BLEND)
@@ -298,9 +316,7 @@ class Scene:
         self.lake_shader.set_mat4("view", view_data)
         self.lake_shader.set_mat4("projection", proj_data)
         self.lake_shader.set_vec3("viewPos", cam_pos.x, cam_pos.y, cam_pos.z)
-        self.lake_shader.set_vec3("firePos", self.fire_pos.x, self.fire_pos.y, self.fire_pos.z)
-        self.lake_shader.set_vec3("fireColor", self.fire_color.x, self.fire_color.y, self.fire_color.z)
-        self.lake_shader.set_float("fireIntensity", self.fire_intensity)
+        self._set_fire_uniforms(self.lake_shader)
         self.lake_shader.set_vec3("moonDir", self.moon_dir.x, self.moon_dir.y, self.moon_dir.z)
         self.lake_shader.set_vec3("moonColor", self.moon_color.x, self.moon_color.y, self.moon_color.z)
         self.lake_shader.set_float("time", self.time)
@@ -313,7 +329,8 @@ class Scene:
         self.campfire_shader.set_mat4("view", view_data)
         self.campfire_shader.set_mat4("projection", proj_data)
         self.campfire_shader.set_float("time", self.time)
-        self.campfire.draw_particles()
+        for campfire in self.campfires:
+            campfire.draw_particles()
 
         # --- Draw Fireflies (additive blending for natural glow) ---
         self.firefly_shader.use()
@@ -352,7 +369,8 @@ class Scene:
         """Clean up resources."""
         self.terrain.destroy()
         self.lake.destroy()
-        self.campfire.destroy()
+        for campfire in self.campfires:
+            campfire.destroy()
         self.tent.destroy()
         self.skybox.destroy()
         self.firefly.destroy()

@@ -223,6 +223,48 @@ class Tent:
         av(-tw, 0.01, -td, 0, 1, 0, *floor_color)
         idxs.extend([b, b+1, b+2, b, b+2, b+3])
 
+    def _add_small_campsite(self, verts, idxs, center_x, center_z, colors, scale=1.0):
+        """Add a quiet secondary campsite to make the lakeside feel inhabited."""
+        fire_x, fire_z = center_x, center_z
+        offsets = [(-3.7 * scale, 0.55 * scale), (3.5 * scale, 0.35 * scale)]
+
+        for i, (ox, oz) in enumerate(offsets):
+            tx = fire_x + ox
+            tz = fire_z + oz
+            ty = height_at(tx, tz)
+            rot = self._look_rotation(tx, tz, fire_x, fire_z)
+            tent_color, side_color = colors[i]
+            floor_color = [0.07, 0.07, 0.06]
+            self._add_tent(verts, idxs, tx, ty, tz, rot,
+                           tent_color=tent_color,
+                           side_color=side_color,
+                           floor_color=floor_color)
+
+        chair_x, chair_z = fire_x, fire_z - 2.4 * scale
+        chair_rot = self._look_rotation(chair_x, chair_z, fire_x, fire_z) + math.pi
+        self._add_simple_chair(verts, idxs, chair_x, chair_z, chair_rot, [0.16, 0.18, 0.28])
+
+        mat_x, mat_z = fire_x - 0.4 * scale, fire_z + 2.8 * scale
+        mat_y = height_at(mat_x, mat_z)
+        mat_rot = self._look_rotation(mat_x, mat_z, fire_x, fire_z)
+        self._add_rotated_box(verts, idxs, mat_x, mat_y + 0.04, mat_z,
+                              0.42 * scale, 0.025, 0.85 * scale,
+                              mat_rot, [0.34, 0.18, 0.12])
+
+        lantern_x, lantern_z = fire_x - 2.4 * scale, fire_z - 1.7 * scale
+        lantern_y = height_at(lantern_x, lantern_z)
+        self._add_box(verts, idxs, lantern_x, lantern_y + 0.10, lantern_z,
+                      0.04, 0.10, 0.04, [0.18, 0.18, 0.18])
+        self._add_box(verts, idxs, lantern_x, lantern_y + 0.13, lantern_z,
+                      0.035, 0.07, 0.035, [0.75, 0.62, 0.20])
+
+        cooler_x, cooler_z = fire_x + 2.7 * scale, fire_z - 1.8 * scale
+        cooler_y = height_at(cooler_x, cooler_z)
+        cooler_rot = self._look_rotation(cooler_x, cooler_z, fire_x, fire_z)
+        self._add_rotated_box(verts, idxs, cooler_x, cooler_y + 0.18, cooler_z,
+                              0.34 * scale, 0.18, 0.22 * scale,
+                              cooler_rot, [0.62, 0.65, 0.62])
+
     def _generate(self):
         verts = []
         idxs = []
@@ -284,6 +326,32 @@ class Tent:
         self._add_box(verts, idxs, lx, ly+0.12, lz, 0.05, 0.12, 0.05, [0.2, 0.2, 0.2])
         self._add_box(verts, idxs, lx, ly+0.15, lz, 0.04, 0.08, 0.04, [0.8, 0.7, 0.2])
 
+        # === Secondary campsites so the lakeside feels less empty ===
+        campsite_centers = [
+            (CAMP_X - 18.0, CAMP_Z + 9.0, 5.5),
+            (CAMP_X + 17.0, CAMP_Z + 8.0, 5.5),
+        ]
+        self._add_small_campsite(
+            verts, idxs,
+            center_x=campsite_centers[0][0],
+            center_z=campsite_centers[0][1],
+            colors=[
+                ([0.36, 0.22, 0.10], [0.42, 0.27, 0.12]),
+                ([0.12, 0.25, 0.22], [0.14, 0.30, 0.25]),
+            ],
+            scale=0.95
+        )
+        self._add_small_campsite(
+            verts, idxs,
+            center_x=campsite_centers[1][0],
+            center_z=campsite_centers[1][1],
+            colors=[
+                ([0.32, 0.16, 0.20], [0.38, 0.20, 0.24]),
+                ([0.20, 0.24, 0.36], [0.24, 0.28, 0.42]),
+            ],
+            scale=0.9
+        )
+
         # =========================================================
         # === FOREST TREES ===
         # =========================================================
@@ -294,6 +362,9 @@ class Tent:
             """Return True if too close to camp tents or fire — keep open space."""
             if abs(tx - fire_x) < CLEAR_RADIUS and abs(tz - fire_z) < CLEAR_RADIUS:
                 return True
+            for cx, cz, radius in campsite_centers:
+                if abs(tx - cx) < radius and abs(tz - cz) < radius:
+                    return True
             return False
 
         # --- Scattered trees near camp but not blocking it ---
