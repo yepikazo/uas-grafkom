@@ -66,6 +66,22 @@ class Camera:
     def get_projection_matrix(self, aspect_ratio, fov=45.0, near=0.1, far=300.0):
         return glm.perspective(glm.radians(fov), aspect_ratio, near, far)
 
+    def set_view(self, position, target):
+        """Set camera position and target directly, used by cinematic paths."""
+        self.position = glm.vec3(position)
+        self.target = glm.vec3(target)
+
+        direction = self.target - self.position
+        if glm.length(direction) <= 0.0001:
+            return
+
+        self.distance = glm.length(direction)
+        self.front = glm.normalize(direction)
+        self.right = glm.normalize(glm.cross(self.front, glm.vec3(0.0, 1.0, 0.0)))
+        self.up = glm.normalize(glm.cross(self.right, self.front))
+        self.yaw = math.degrees(math.atan2(self.front.z, self.front.x))
+        self.pitch = math.degrees(math.asin(self.front.y))
+
     def process_mouse_button(self, button, pressed, x, y):
         """Handle mouse button events."""
         if button == 1:  # Left button

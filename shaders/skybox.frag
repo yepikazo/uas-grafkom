@@ -154,18 +154,18 @@ void main() {
     vec3  moonDirection = normalize(moonDir);
     float moonAngle     = dot(dir, moonDirection);
 
-    float moonDisc      = smoothstep(0.997, 0.9985, moonAngle);
+    float moonDisc      = smoothstep(0.99905, 0.99955, moonAngle);
     vec3  moonFaceColor = vec3(0.98, 0.96, 0.9);
     vec2  moonUV  = dir.xz / max(dir.y, 0.001);
     float crater  = hash(floor(moonUV * 5.0)) * 0.15;
     moonFaceColor -= vec3(crater * 0.5, crater * 0.4, crater * 0.3) * moonDisc;
-    skyColor += moonFaceColor * moonDisc * 5.0;
+    skyColor += moonFaceColor * moonDisc * 3.2;
 
-    float moonGlow  = smoothstep(0.94,  0.998, moonAngle);
-    skyColor += vec3(0.2, 0.25, 0.4) * moonGlow * (1.0 - moonDisc);
+    float moonGlow  = smoothstep(0.975, 0.9995, moonAngle);
+    skyColor += vec3(0.14, 0.18, 0.32) * moonGlow * (1.0 - moonDisc);
 
-    float outerGlow = smoothstep(0.93,  0.98,  moonAngle);
-    skyColor += vec3(0.04, 0.04, 0.07) * outerGlow * (1.0 - moonGlow);
+    float outerGlow = smoothstep(0.955, 0.988,  moonAngle);
+    skyColor += vec3(0.025, 0.03, 0.055) * outerGlow * (1.0 - moonGlow);
 
     // ---- Milky Way ----
     float milkyWay   = smoothstep(0.8, 1.0, abs(dir.x * 0.5 + dir.y * 0.866));

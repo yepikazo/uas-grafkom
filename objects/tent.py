@@ -11,7 +11,7 @@ from core.terrain_height import LAKE_SEMI_MAJOR, LAKE_SEMI_MINOR
 
 
 class Tent:
-    """A-frame camping tent with chair, lantern, and forest trees."""
+    """A-frame camping tents with chairs, camping props, lantern, and forest trees."""
 
     def __init__(self):
         self.position = (CAMP_X, height_at(CAMP_X, CAMP_Z), CAMP_Z)
@@ -34,6 +34,121 @@ class Tent:
         idxs.extend([i,i+1,i+3, i,i+3,i+2, i+4,i+7,i+5, i+4,i+6,i+7,
                      i,i+4,i+1, i+1,i+4,i+5, i+2,i+3,i+6, i+3,i+7,i+6,
                      i,i+2,i+4, i+2,i+6,i+4, i+1,i+5,i+3, i+3,i+5,i+7])
+
+    def _add_rotated_box(self, verts, idxs, cx, cy, cz, hw, hh, hd, rotation, color):
+        """Add a box rotated around Y. Local +Z is the facing direction."""
+        cr, sr = math.cos(rotation), math.sin(rotation)
+        b = len(verts) // 9
+
+        for sy in [-1, 1]:
+            for sz in [-1, 1]:
+                for sx in [-1, 1]:
+                    lx, ly, lz = sx * hw, sy * hh, sz * hd
+                    wx = cx + lx * cr + lz * sr
+                    wz = cz - lx * sr + lz * cr
+
+                    n = 0.577
+                    nx = sx * n * cr + sz * n * sr
+                    nz = -sx * n * sr + sz * n * cr
+                    verts.extend([wx, cy + ly, wz, nx, sy * n, nz, *color])
+
+        i = b
+        idxs.extend([i,i+1,i+3, i,i+3,i+2, i+4,i+7,i+5, i+4,i+6,i+7,
+                     i,i+4,i+1, i+1,i+4,i+5, i+2,i+3,i+6, i+3,i+7,i+6,
+                     i,i+2,i+4, i+2,i+6,i+4, i+1,i+5,i+3, i+3,i+5,i+7])
+
+    def _look_rotation(self, cx, cz, tx, tz):
+        """Return a Y rotation where local +Z points toward target."""
+        return math.atan2(tx - cx, tz - cz)
+
+    def _add_simple_chair(self, verts, idxs, cx, cz, rotation, fabric_color):
+        """Add the original simple chair model."""
+        cy = height_at(cx, cz)
+        frame_color = [0.18, 0.18, 0.17]
+        sw, sh, sd = 0.3, 0.35, 0.3
+        cr, sr = math.cos(rotation), math.sin(rotation)
+
+        def chair_vertex(lx, ly, lz, nx, ny, nz):
+            wx = cx + lx * cr + lz * sr
+            wz = cz - lx * sr + lz * cr
+            wnx = nx * cr + nz * sr
+            wnz = -nx * sr + nz * cr
+            return [wx, cy + ly, wz, wnx, ny, wnz]
+
+        def chair_leg(lx, lz):
+            leg_x = cx + lx * cr + lz * sr
+            leg_z = cz - lx * sr + lz * cr
+            self._add_box(verts, idxs, leg_x, cy + sh/2, leg_z,
+                          0.015, sh/2, 0.015, frame_color)
+
+        b = len(verts) // 9
+        for vertex in [
+            chair_vertex(-sw, sh, -sd, 0, 1, 0),
+            chair_vertex( sw, sh, -sd, 0, 1, 0),
+            chair_vertex( sw, sh,  sd, 0, 1, 0),
+            chair_vertex(-sw, sh,  sd, 0, 1, 0),
+        ]:
+            verts.extend([*vertex, *fabric_color])
+        idxs.extend([b, b+1, b+2, b, b+2, b+3])
+
+        b = len(verts) // 9
+        for vertex in [
+            chair_vertex(-sw, sh,       sd, 0, 0, 1),
+            chair_vertex( sw, sh,       sd, 0, 0, 1),
+            chair_vertex( sw, sh+0.45,  sd, 0, 0, 1),
+            chair_vertex(-sw, sh+0.45,  sd, 0, 0, 1),
+        ]:
+            verts.extend([*vertex, *fabric_color])
+        idxs.extend([b, b+1, b+2, b, b+2, b+3])
+
+        for dx in [-sw+0.05, sw-0.05]:
+            for dz in [-sd+0.05, sd-0.05]:
+                chair_leg(dx, dz)
+
+    def _add_camping_props(self, verts, idxs, fire_x, fire_z):
+        """Add small camping items around the fire without entering tent/fire space."""
+        wood = [0.30, 0.18, 0.08]
+        metal = [0.42, 0.42, 0.38]
+        dark = [0.08, 0.08, 0.075]
+        red = [0.42, 0.07, 0.05]
+        cream = [0.82, 0.78, 0.62]
+        blanket = [0.50, 0.08, 0.06]
+
+        table_x, table_z = fire_x + 1.55, fire_z + 1.35
+        table_y = height_at(table_x, table_z)
+        table_rot = self._look_rotation(table_x, table_z, fire_x, fire_z)
+        self._add_rotated_box(verts, idxs, table_x, table_y + 0.42, table_z,
+                              0.55, 0.045, 0.32, table_rot, wood)
+        for lx in [-0.45, 0.45]:
+            for lz in [-0.23, 0.23]:
+                leg_x = table_x + lx * math.cos(table_rot) + lz * math.sin(table_rot)
+                leg_z = table_z - lx * math.sin(table_rot) + lz * math.cos(table_rot)
+                self._add_box(verts, idxs, leg_x, table_y + 0.22, leg_z,
+                              0.025, 0.22, 0.025, dark)
+
+        # Cooking pot and two mugs on the table.
+        self._add_box(verts, idxs, table_x - 0.05, table_y + 0.54, table_z,
+                      0.18, 0.08, 0.18, metal)
+        self._add_box(verts, idxs, table_x - 0.05, table_y + 0.64, table_z,
+                      0.20, 0.02, 0.20, dark)
+        self._add_box(verts, idxs, table_x + 0.32, table_y + 0.55, table_z - 0.12,
+                      0.07, 0.09, 0.07, red)
+        self._add_box(verts, idxs, table_x + 0.34, table_y + 0.55, table_z + 0.14,
+                      0.07, 0.09, 0.07, cream)
+
+        cooler_x, cooler_z = fire_x - 3.45, fire_z - 1.65
+        cooler_y = height_at(cooler_x, cooler_z)
+        cooler_rot = self._look_rotation(cooler_x, cooler_z, fire_x, fire_z)
+        self._add_rotated_box(verts, idxs, cooler_x, cooler_y + 0.22, cooler_z,
+                              0.42, 0.22, 0.28, cooler_rot, [0.70, 0.72, 0.68])
+        self._add_rotated_box(verts, idxs, cooler_x, cooler_y + 0.46, cooler_z,
+                              0.44, 0.035, 0.30, cooler_rot, [0.12, 0.18, 0.28])
+
+        mat_x, mat_z = fire_x - 1.00, fire_z + 3.00
+        mat_y = height_at(mat_x, mat_z)
+        mat_rot = self._look_rotation(mat_x, mat_z, fire_x, fire_z)
+        self._add_rotated_box(verts, idxs, mat_x, mat_y + 0.04, mat_z,
+                              0.48, 0.025, 0.95, mat_rot, blanket)
 
     def _add_tree(self, verts, idxs, tx, tz, scale=1.0):
         """Add a pine tree at world position."""
@@ -151,28 +266,17 @@ class Tent:
                        side_color=[0.42, 0.35, 0.19],
                        floor_color=[0.08, 0.07, 0.05])
 
-        # === Chair (near campfire, north side toward lake) ===
-        cc = [0.15, 0.2, 0.35]
-        cpx, cpz = CAMP_X + 3.0, CAMP_Z - 2.0
-        cpy = height_at(cpx, cpz)
-        sw, sh, sd = 0.3, 0.35, 0.3
-        b = len(verts) // 9
-        verts.extend([cpx-sw, cpy+sh, cpz-sd, 0,1,0, *cc,
-                      cpx+sw, cpy+sh, cpz-sd, 0,1,0, *cc,
-                      cpx+sw, cpy+sh, cpz+sd, 0,1,0, *cc,
-                      cpx-sw, cpy+sh, cpz+sd, 0,1,0, *cc])
-        idxs.extend([b, b+1, b+2, b, b+2, b+3])
-        b = len(verts) // 9
-        verts.extend([cpx-sw, cpy+sh, cpz+sd, 0,0,1, *cc,
-                      cpx+sw, cpy+sh, cpz+sd, 0,0,1, *cc,
-                      cpx+sw, cpy+sh+0.45, cpz+sd, 0,0,1, *cc,
-                      cpx-sw, cpy+sh+0.45, cpz+sd, 0,0,1, *cc])
-        idxs.extend([b, b+1, b+2, b, b+2, b+3])
-        fc2 = [0.25, 0.25, 0.25]
-        for dx in [-sw+0.05, sw-0.05]:
-            for dz in [-sd+0.05, sd-0.05]:
-                self._add_box(verts, idxs, cpx+dx, cpy+sh/2, cpz+dz,
-                              0.015, sh/2, 0.015, fc2)
+        # === Chairs and small camping interior ===
+        chair_specs = [
+            (fire_x - 2.10, fire_z - 1.15, [0.13, 0.20, 0.36]),
+            (fire_x + 2.10, fire_z - 1.05, [0.34, 0.12, 0.08]),
+            (fire_x + 0.35, fire_z + 2.25, [0.22, 0.28, 0.14]),
+        ]
+        for cpx, cpz, color in chair_specs:
+            crot = self._look_rotation(cpx, cpz, fire_x, fire_z) + math.pi
+            self._add_simple_chair(verts, idxs, cpx, cpz, crot, color)
+
+        self._add_camping_props(verts, idxs, fire_x, fire_z)
 
         # === Lantern ===
         lx, lz = CAMP_X - 1.5, CAMP_Z - 0.5

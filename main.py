@@ -7,6 +7,7 @@ tent and camping accessories. cek notif
 Controls:
   - Left mouse drag: Rotate camera
   - Mouse scroll: Zoom in/out
+  - V: Toggle cinematic camera
   - R: Reset/toggle auto-rotation
   - ESC: Exit
 """
@@ -89,10 +90,13 @@ class Scene:
         fire_x, fire_z = CAMP_X - 2.0, CAMP_Z + 1.5
         fire_y = height_at(fire_x, fire_z) + 0.3
 
-        # Create camera near camp, looking NORTH toward lake and Fuji
+        # Create camera — first-person, seated at camp looking toward fire & lake
+        chair_x, chair_z = CAMP_X + 2.5, CAMP_Z - 1.5
+        chair_y = height_at(chair_x, chair_z)
+        eye_height = 1.2  # seated eye level
         self.camera = Camera(
-            position=glm.vec3(CAMP_X, camp_y + 3.0, CAMP_Z + 6.0),
-            target=glm.vec3(CAMP_X, camp_y + 1.0, CAMP_Z - 30.0)
+            position=glm.vec3(chair_x, chair_y + eye_height, chair_z),
+            target=glm.vec3(fire_x, fire_y + 0.5, fire_z - 15.0)
         )
 
         # Create scene objects
@@ -115,9 +119,69 @@ class Scene:
         self.fire_pos = glm.vec3(fire_x, fire_y, fire_z)
         self.fire_color = glm.vec3(1.0, 0.6, 0.15)
         self.fire_intensity = 3.0
-        # Moon beside Mount Fuji — slightly right, low on northern horizon
-        self.moon_dir = glm.normalize(glm.vec3(0.35, 0.45, -0.85))
+        # Moon close to Mount Fuji, slightly above and to the right of the summit.
+        self.moon_dir = glm.normalize(glm.vec3(0.16, 0.34, -0.93))
         self.moon_color = glm.vec3(0.7, 0.75, 1.0)
+        self.cinematic_enabled = False
+        self.cinematic_time = 0.0
+        self.cinematic_duration = 56.0
+
+    def _cinematic_point(self, x, z, eye_height):
+        """Create a camera point lifted above the terrain."""
+        return glm.vec3(x, height_at(x, z) + eye_height, z)
+
+    def _smoothstep(self, value):
+        value = max(0.0, min(1.0, value))
+        return value * value * (3.0 - 2.0 * value)
+
+    def _lerp_vec3(self, a, b, t):
+        return a * (1.0 - t) + b * t
+
+    def _sample_cinematic_path(self):
+        """Return smoothly interpolated camera and target positions."""
+        fire_x, fire_y, fire_z = self.fire_pos.x, self.fire_pos.y, self.fire_pos.z
+        tent_focus = glm.vec3(fire_x + 0.3, height_at(fire_x + 0.3, fire_z + 2.6) + 1.1, fire_z + 2.6)
+        lake_focus = glm.vec3(0.0, 1.0, -18.0)
+        fuji_focus = glm.vec3(0.0, 18.0, -135.0)
+        moon_focus = glm.vec3(10.0, 31.0, -88.0)
+        horizon_focus = glm.vec3(2.0, 5.5, -45.0)
+
+        shots = [
+            # Tents in the foreground, lake and Fuji behind them.
+            (self._cinematic_point(-8.0, 62.0, 2.4), horizon_focus),
+            (self._cinematic_point(0.0, 64.0, 2.2), fuji_focus),
+            (self._cinematic_point(8.0, 61.0, 2.5), moon_focus),
+
+            # Slow side drift keeps the campsite visible while revealing the lake.
+            (self._cinematic_point(13.0, 55.0, 3.2), lake_focus),
+            (self._cinematic_point(-13.0, 55.0, 3.2), lake_focus),
+
+            # Closer campsite composition before looping back to the wide view.
+            (self._cinematic_point(-5.0, 57.0, 1.6), tent_focus),
+            (self._cinematic_point(5.0, 58.0, 1.8), horizon_focus),
+        ]
+
+        phase = (self.cinematic_time % self.cinematic_duration) / self.cinematic_duration
+        scaled = phase * len(shots)
+        index = int(scaled) % len(shots)
+        next_index = (index + 1) % len(shots)
+        local_t = self._smoothstep(scaled - int(scaled))
+
+        cam_a, target_a = shots[index]
+        cam_b, target_b = shots[next_index]
+        camera_pos = self._lerp_vec3(cam_a, cam_b, local_t)
+        target_pos = self._lerp_vec3(target_a, target_b, local_t)
+
+        # Gentle handheld-like drift, subtle enough for presentation.
+        camera_pos.y += math.sin(self.cinematic_time * 0.45) * 0.18
+        target_pos.x += math.sin(self.cinematic_time * 0.22) * 0.35
+        return camera_pos, target_pos
+
+    def update_cinematic_camera(self, dt):
+        """Advance the cinematic camera loop."""
+        self.cinematic_time += dt
+        camera_pos, target_pos = self._sample_cinematic_path()
+        self.camera.set_view(camera_pos, target_pos)
 
     def handle_events(self):
         """Process input events."""
@@ -130,12 +194,18 @@ class Scene:
                 elif event.key == K_r:
                     self.camera.auto_rotate = not self.camera.auto_rotate
                 elif event.key == K_c:
+                    self.cinematic_enabled = False
                     self.camera.toggle_mode()
                     print(f"Camera mode: {self.camera.mode}")
+                elif event.key == K_v:
+                    self.cinematic_enabled = not self.cinematic_enabled
+                    self.camera.auto_rotate = False
+                    print(f"Cinematic camera: {'ON' if self.cinematic_enabled else 'OFF'}")
             elif event.type == VIDEORESIZE:
                 self.window.handle_resize(event.w, event.h)
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    self.cinematic_enabled = False
                     self.camera.process_mouse_button(1, True, *event.pos)
                 elif event.button == 4:
                     self.camera.process_scroll(1)
@@ -155,9 +225,12 @@ class Scene:
         
         # Handle keyboard movement
         keys = pygame.key.get_pressed()
-        self.camera.process_keyboard(keys, dt)
-        
-        self.camera.update(dt)
+        if self.cinematic_enabled:
+            self.update_cinematic_camera(dt)
+        else:
+            self.camera.process_keyboard(keys, dt)
+            self.camera.update(dt)
+
         self.campfire.update(dt)
         self.firefly.update(dt)
 
@@ -261,6 +334,7 @@ class Scene:
         print("  WASD        : Move (Free mode)")
         print("  Space/Shift : Up/Down (Free mode)")
         print("  C           : Toggle Camera Mode (Free/Orbital)")
+        print("  V           : Toggle Cinematic Camera")
         print("  R           : Toggle Auto-rotation (Orbital mode)")
         print("  ESC         : Exit")
         print("========================================\n")
