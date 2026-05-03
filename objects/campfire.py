@@ -12,7 +12,7 @@ class Campfire:
 
     def __init__(self, position=(4.0, 0.3, 3.0)):
         self.position = position
-        self.max_particles = 200
+        self.max_particles = 400
         self.particles = []
         self.log_vao = None
         self.log_vbo = None

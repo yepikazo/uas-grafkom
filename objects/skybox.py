@@ -15,7 +15,7 @@ class Skybox:
 
     def _generate(self):
         # Skybox cube vertices (positions only)
-        s = 50.0
+        s = 500.0
         vertices = np.array([
             # Back face
             -s, -s, -s,  s, -s, -s,  s,  s, -s,

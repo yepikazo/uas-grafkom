@@ -5,9 +5,11 @@ in vec3 Normal;
 in vec2 TexCoord;
 
 uniform vec3 viewPos;
-uniform vec3 firePos;
-uniform vec3 fireColor;
-uniform float fireIntensity;
+const int MAX_FIRES = 3;
+uniform int fireCount;
+uniform vec3 firePositions[MAX_FIRES];
+uniform vec3 fireColors[MAX_FIRES];
+uniform float fireIntensities[MAX_FIRES];
 uniform vec3 moonDir;
 uniform vec3 moonColor;
 uniform float time;
@@ -33,18 +35,23 @@ void main() {
 
     // Moon diffuse on water
     float moonDiff = max(dot(norm, normalize(moonDir)), 0.0);
-    vec3 moonDiffuse = moonColor * moonDiff * 0.15;
+    vec3 moonDiffuse = moonColor * moonDiff * 1.0;
 
-    // Campfire reflection on water
-    float dist = length(firePos - FragPos);
-    float attenuation = fireIntensity / (1.0 + 0.1 * dist + 0.05 * dist * dist);
-    vec3 fireReflectDir = reflect(-normalize(firePos - FragPos), norm);
-    float fireSpec = pow(max(dot(viewDir, fireReflectDir), 0.0), 16.0);
-    vec3 fireReflection = fireColor * fireSpec * attenuation * 0.8;
+    // Campfire reflections on water
+    vec3 fireReflection = vec3(0.0);
+    for (int i = 0; i < MAX_FIRES; i++) {
+        if (i >= fireCount) {
+            break;
+        }
 
-    // Flickering
-    float flicker = 0.85 + 0.15 * sin(time * 7.0 + FragPos.x * 3.0);
-    fireReflection *= flicker;
+        vec3 toFire = firePositions[i] - FragPos;
+        float dist = length(toFire);
+        float attenuation = fireIntensities[i] / (1.0 + 0.02 * dist + 0.003 * dist * dist);
+        vec3 fireReflectDir = reflect(-normalize(toFire), norm);
+        float fireSpec = pow(max(dot(viewDir, fireReflectDir), 0.0), 16.0);
+        float flicker = 0.85 + 0.15 * sin(time * 7.0 + FragPos.x * 3.0 + float(i) * 1.7);
+        fireReflection += fireColors[i] * fireSpec * attenuation * 0.8 * flicker;
+    }
 
     // Subtle sparkle effect
     float sparkle = pow(sin(FragPos.x * 20.0 + time * 2.0) *
@@ -52,12 +59,12 @@ void main() {
     vec3 sparkleColor = moonColor * sparkle * fresnel;
 
     // Combine
-    vec3 ambient = vec3(0.01, 0.015, 0.03);
+    vec3 ambient = vec3(0.04, 0.05, 0.1);
     vec3 result = waterColor + ambient + moonReflection + moonDiffuse + fireReflection + sparkleColor;
 
     // Night fog
     float fogDist = length(FragPos);
-    float fogFactor = 1.0 - exp(-fogDist * 0.012);
+    float fogFactor = 1.0 - exp(-fogDist * 0.003);
     vec3 fogColor = vec3(0.02, 0.03, 0.06);
     result = mix(result, fogColor, fogFactor);
 
