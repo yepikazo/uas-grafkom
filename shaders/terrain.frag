@@ -48,7 +48,7 @@ void main() {
     vec3 moonLighting = moonColor * moonDiff * 0.8;
 
     // Ambient light (night sky)
-    vec3 ambient = vec3(0.08, 0.1, 0.18);
+    vec3 ambient = vec3(0.15, 0.2, 0.25);
 
     // Campfire point lights
     vec3 fireLighting = vec3(0.0);
