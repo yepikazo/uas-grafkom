@@ -253,7 +253,7 @@ class Scene:
 
         for campfire in self.campfires:
             campfire.update(dt)
-        self.firefly.update(dt)
+        self.firefly.update(dt, self.camera.position)
 
         # Animate fire intensity
         self.fire_intensity = 5 + 1.2 * math.sin(self.time * 3.0) + 0.5 * math.sin(self.time * 7.0)

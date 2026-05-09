@@ -35,21 +35,21 @@ void main() {
         minDist = min(minDist, dist);
     }
     
-    float warmRadius = 15.0;
+    float warmRadius = 7.0;
     float warmthFactor = 1.0 - smoothstep(0.0, warmRadius, minDist);
-    warmthFactor = pow(warmthFactor, 1.8);
-    vec3 warmColor = vec3(0.6, 0.28, 0.1);
-    vec3 waterColor = waterColorBase + warmColor * warmthFactor * 1.4;
+    warmthFactor = pow(warmthFactor, 2.5);
+    vec3 warmColor = vec3(0.5, 0.22, 0.06);
+    vec3 waterColor = waterColorBase + warmColor * warmthFactor * 0.7;
     
     float darkStart = warmRadius;
-    float darkEnd = warmRadius + 15.0;
+    float darkEnd = warmRadius + 10.0;
     float farDarken = 1.0 - smoothstep(darkStart, darkEnd, minDist);
     waterColor *= (0.3 + farDarken * 0.5);
     
-    float glowRadius = 10.0;
+    float glowRadius = 5.0;
     float glow = 1.0 - smoothstep(0.0, glowRadius, minDist);
-    glow = pow(glow, 1.2) * 0.6;
-    waterColor += vec3(0.5, 0.25, 0.08) * glow;
+    glow = pow(glow, 1.8) * 0.35;
+    waterColor += vec3(0.45, 0.2, 0.05) * glow;
     
     // Diffuse bulan (ditingkatkan)
     float moonDiff = max(dot(norm, lightDir), 0.0);
@@ -70,9 +70,10 @@ void main() {
         float attenuation = fireIntensities[i] / (1.0 + 0.02 * dist + 0.003 * dist * dist);
         vec3 fireLightDir = normalize(toFire);
         vec3 reflectFire = reflect(-fireLightDir, norm);
-        float fireSpec = pow(max(dot(viewDir, reflectFire), 0.0), 16.0);
-        float flicker = 0.85 + 0.15 * sin(time * 7.0 + FragPos.x * 3.0 + float(i) * 1.7);
-        fireReflection += fireColors[i] * fireSpec * attenuation * 1.0 * flicker; // multiplier 1.0
+        // Higher exponent (64) = smaller, sharper specular spot on water
+        float fireSpec = pow(max(dot(viewDir, reflectFire), 0.0), 64.0);
+        float flicker = 0.82 + 0.18 * sin(time * 7.0 + FragPos.x * 3.0 + float(i) * 1.7);
+        fireReflection += fireColors[i] * fireSpec * attenuation * 0.5 * flicker;
     }
     
     // Ambient tetap gelap
