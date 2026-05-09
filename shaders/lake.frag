@@ -53,12 +53,13 @@ void main() {
     
     // Diffuse bulan (ditingkatkan)
     float moonDiff = max(dot(norm, lightDir), 0.0);
-    vec3 moonDiffuse = moonColor * moonDiff * 0.6;
+    vec3 moonDiffuse = moonColor * moonDiff * 0.4;
     
     // Specular bulan (ditingkatkan)
     vec3 reflectDir = reflect(-lightDir, norm);
-    float moonSpec = pow(max(dot(viewDir, reflectDir), 0.0), 256.0);
-    vec3 moonReflection = moonColor * moonSpec * 3.0;
+    float moonSpecSharp = pow(max(dot(viewDir, reflectDir), 0.0), 256.0);
+    float moonSpecWide = pow(max(dot(viewDir, reflectDir), 0.0), 48.0);
+    vec3 moonReflection = moonColor * (moonSpecSharp * 4.5 + moonSpecWide * 0.9);
     
     // Pantulan api (ditingkatkan intensitasnya)
     vec3 fireReflection = vec3(0.0);
