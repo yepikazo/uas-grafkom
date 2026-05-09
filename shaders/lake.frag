@@ -57,8 +57,8 @@ void main() {
     
     // Specular bulan (ditingkatkan)
     vec3 reflectDir = reflect(-lightDir, norm);
-    float moonSpec = pow(max(dot(viewDir, reflectDir), 0.0), 64.0);
-    vec3 moonReflection = moonColor * moonSpec * 2.0;
+    float moonSpec = pow(max(dot(viewDir, reflectDir), 0.0), 256.0);
+    vec3 moonReflection = moonColor * moonSpec * 3.0;
     
     // Pantulan api (ditingkatkan intensitasnya)
     vec3 fireReflection = vec3(0.0);

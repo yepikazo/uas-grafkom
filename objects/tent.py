@@ -155,6 +155,8 @@ class Tent:
         ty = height_at(tx, tz)
         if ty < -0.1:  # Skip if underwater
             return
+        if ty >= 15.0:  # Skip if on white/snowy mountain soil
+            return
         trunk_h = 0.6 * scale
         trunk_c = [0.12, 0.07, 0.03]
         self._add_box(verts, idxs, tx, ty + trunk_h, tz,

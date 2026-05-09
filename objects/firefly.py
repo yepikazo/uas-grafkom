@@ -16,7 +16,7 @@ class Firefly:
     avoid the lake, and hover above the ground level.
     """
 
-    NUM_FIREFLIES = 60
+    NUM_FIREFLIES = 120
 
     def __init__(self):
         self.time    = 0.0
@@ -38,19 +38,23 @@ class Firefly:
             attempts += 1
 
             zone = random.random()
-            if zone < 0.35:
+            if zone < 0.25:
                 # Just behind tents — close forest edge (south/behind camp)
                 tx = CAMP_X + random.uniform(-18, 18)
                 tz = CAMP_Z + random.uniform(8, 22)
-            elif zone < 0.55:
+            elif zone < 0.40:
                 # Left and right flanks of camp, close range
                 side = random.choice([-1, 1])
                 tx = CAMP_X + side * random.uniform(7, 20)
                 tz = CAMP_Z + random.uniform(-5, 18)
-            elif zone < 0.75:
+            elif zone < 0.55:
                 # Near lake shore edge (outside lake boundary)
                 tx = CAMP_X + random.uniform(-25, 25)
                 tz = CAMP_Z + random.uniform(-18, -5)
+            elif zone < 0.75:
+                # Across the lake (north of the lake)
+                tx = random.uniform(-50, 50)
+                tz = random.uniform(-80, -45)
             else:
                 # Scattered very close around camp perimeter
                 tx = CAMP_X + random.uniform(-12, 12)
