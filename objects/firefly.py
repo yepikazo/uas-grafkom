@@ -16,7 +16,7 @@ class Firefly:
     avoid the lake, and hover above the ground level.
     """
 
-    NUM_FIREFLIES = 60
+    NUM_FIREFLIES = 120
 
     def __init__(self):
         self.time    = 0.0
@@ -38,19 +38,23 @@ class Firefly:
             attempts += 1
 
             zone = random.random()
-            if zone < 0.35:
+            if zone < 0.25:
                 # Just behind tents — close forest edge (south/behind camp)
                 tx = CAMP_X + random.uniform(-18, 18)
                 tz = CAMP_Z + random.uniform(8, 22)
-            elif zone < 0.55:
+            elif zone < 0.40:
                 # Left and right flanks of camp, close range
                 side = random.choice([-1, 1])
                 tx = CAMP_X + side * random.uniform(7, 20)
                 tz = CAMP_Z + random.uniform(-5, 18)
-            elif zone < 0.75:
+            elif zone < 0.55:
                 # Near lake shore edge (outside lake boundary)
                 tx = CAMP_X + random.uniform(-25, 25)
                 tz = CAMP_Z + random.uniform(-18, -5)
+            elif zone < 0.75:
+                # Across the lake (north of the lake)
+                tx = random.uniform(-50, 50)
+                tz = random.uniform(-80, -45)
             else:
                 # Scattered very close around camp perimeter
                 tx = CAMP_X + random.uniform(-12, 12)
@@ -79,6 +83,7 @@ class Firefly:
                 'drift_speed':  random.uniform(0.3, 0.9),
                 'hover_height': random.uniform(0.4, 2.0),
                 'drift_r':      random.uniform(0.4, 1.5),
+                'evasion_offset': [0.0, 0.0, 0.0],
             })
             placed += 1
 
@@ -110,8 +115,33 @@ class Firefly:
         glBindVertexArray(0)
 
     # ------------------------------------------------------------------ update
-    def update(self, dt):
+    def update(self, dt, camera_pos=None):
         self.time += dt
+        
+        if camera_pos:
+            cx, cy, cz = camera_pos.x, camera_pos.y, camera_pos.z
+            for ff in self.fireflies:
+                bx, by, bz = ff['base']
+                ex, ey, ez = ff['evasion_offset']
+                
+                # Current approx position (ignoring sine drift for collision)
+                curr_x, curr_y, curr_z = bx + ex, by + ff['hover_height'] + ey, bz + ez
+                
+                dx, dy, dz = curr_x - cx, curr_y - cy, curr_z - cz
+                dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+                
+                # If camera is closer than 4 meters, scatter!
+                if dist < 4.0 and dist > 0.01:
+                    push_force = (4.0 - dist) * 2.0  # Stronger push the closer it is
+                    # Normalize and apply force
+                    ff['evasion_offset'][0] += (dx / dist) * push_force * dt
+                    ff['evasion_offset'][1] += (dy / dist) * push_force * dt
+                    ff['evasion_offset'][2] += (dz / dist) * push_force * dt
+                else:
+                    # Slowly return to original base position
+                    ff['evasion_offset'][0] -= ex * 1.5 * dt
+                    ff['evasion_offset'][1] -= ey * 1.5 * dt
+                    ff['evasion_offset'][2] -= ez * 1.5 * dt
 
     # ------------------------------------------------------------------ draw
     def draw(self):
@@ -122,6 +152,7 @@ class Firefly:
 
         for ff in self.fireflies:
             bx, by, bz = ff['base']
+            ex, ey, ez = ff['evasion_offset']
             sp  = ff['drift_speed']
             dr  = ff['drift_r']
             hh  = ff['hover_height']
@@ -130,10 +161,10 @@ class Firefly:
             bp  = ff['blink_phase']
             bf  = ff['blink_freq']
 
-            # Sinusoidal hover drift
-            x = bx + math.sin(t * sp + mpx) * dr
-            y = by + hh + math.sin(t * sp * 0.7 + mpx + 1.0) * 0.25
-            z = bz + math.cos(t * sp + mpz) * dr
+            # Sinusoidal hover drift + evasion offset
+            x = bx + ex + math.sin(t * sp + mpx) * dr
+            y = by + ey + hh + math.sin(t * sp * 0.7 + mpx + 1.0) * 0.25
+            z = bz + ez + math.cos(t * sp + mpz) * dr
 
             # Blink: 0 (off) → 1 (on), with quick on & slow off (natural bioluminescence)
             raw_blink = math.sin(t * bf * math.pi * 2 + bp)
